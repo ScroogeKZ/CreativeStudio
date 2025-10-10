@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SEO } from "@/components/SEO";
 import { MapPin, Phone, Mail } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -73,8 +74,26 @@ export function Contact({ language }: ContactProps) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const seoContent = {
+    title: {
+      ru: 'Контакты | Creative Studio',
+      kz: 'Байланыс | Creative Studio',
+      en: 'Contact Us | Creative Studio'
+    },
+    description: {
+      ru: 'Свяжитесь с Creative Studio для обсуждения вашего проекта. Оставьте заявку, и мы свяжемся с вами в ближайшее время.',
+      kz: 'Жобаңызды талқылау үшін Creative Studio-мен байланысыңыз. Өтінім қалдырыңыз, біз сізбен жақын арада байланысамыз.',
+      en: 'Contact Creative Studio to discuss your project. Leave a request and we will contact you soon.'
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20">
+      <SEO 
+        title={seoContent.title[language]}
+        description={seoContent.description[language]}
+        lang={language}
+      />
       <section className="py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">

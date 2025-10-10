@@ -85,12 +85,29 @@ export const contacts = pgTable("contacts", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Admin Users
+export const adminUsers = pgTable("admin_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: varchar("name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLoginAt: timestamp("last_login_at"),
+});
+
 // Insert Schemas
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
 export const insertCaseSchema = createInsertSchema(cases).omit({ id: true, createdAt: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertTestimonialSchema = createInsertSchema(testimonials).omit({ id: true, createdAt: true });
-export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, status: true });
+export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, status: true }).extend({
+  name: z.string().min(2, "Name must be at least 2 characters").max(100, "Name too long"),
+  email: z.string().email("Invalid email format").max(255, "Email too long"),
+  phone: z.string().max(20, "Phone too long").optional(),
+  company: z.string().max(100, "Company name too long").optional(),
+  message: z.string().min(10, "Message must be at least 10 characters").max(2000, "Message too long"),
+});
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true, lastLoginAt: true });
 
 // Types
 export type Service = typeof services.$inferSelect;
@@ -107,3 +124,6 @@ export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
 
 export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = z.infer<typeof insertContactSchema>;
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;

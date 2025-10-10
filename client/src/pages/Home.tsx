@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Hero3D } from "@/components/Hero3D";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Users, Target, Award, TrendingUp, Sparkles, Network, Database, Code } from "lucide-react";
@@ -165,8 +166,27 @@ export function Home({ language }: HomeProps) {
     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const seoContent = {
+    title: {
+      ru: 'Creative Studio - Digital & Brandformance Agency | Маркетинговое агентство',
+      kz: 'Creative Studio - Digital & Brandformance Agency | Маркетинг агенттігі',
+      en: 'Creative Studio - Digital & Brandformance Agency | Marketing Agency'
+    },
+    description: {
+      ru: 'Профессиональное маркетинговое агентство полного цикла в Казахстане. Digital-маркетинг, брендинг, PR, SMM, веб-разработка и аналитика. Комплексные решения для роста вашего бренда.',
+      kz: 'Қазақстандағы кәсіби толық циклді маркетинг агенттігі. Digital-маркетинг, брендинг, PR, SMM, веб-әзірлеу және аналитика. Брендіңіздің өсуі үшін кешенді шешімдер.',
+      en: 'Professional full-cycle marketing agency in Kazakhstan. Digital marketing, branding, PR, SMM, web development and analytics. Comprehensive solutions for your brand growth.'
+    }
+  };
+
   return (
     <div className="min-h-screen">
+      <SEO 
+        title={seoContent.title[language]}
+        description={seoContent.description[language]}
+        keywords="маркетинг, digital marketing, брендинг, branding, SMM, PR, веб-разработка, аналитика, Казахстан, Алматы"
+        lang={language}
+      />
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <Hero3D />
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 text-center">

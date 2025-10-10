@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { SEO } from "@/components/SEO";
 import type { Post } from "@shared/schema";
 
 type Language = "ru" | "kz" | "en";
@@ -21,8 +22,26 @@ export function Blog({ language }: BlogProps) {
     queryKey: ['/api/posts'],
   });
 
+  const seoContent = {
+    title: {
+      ru: 'Блог о маркетинге и digital | Creative Studio',
+      kz: 'Маркетинг және digital туралы блог | Creative Studio',
+      en: 'Marketing and Digital Blog | Creative Studio'
+    },
+    description: {
+      ru: 'Статьи и insights о digital-маркетинге, SMM, брендинге, веб-технологиях и трендах индустрии от экспертов Creative Studio.',
+      kz: 'Creative Studio сарапшыларынан digital-маркетинг, SMM, брендинг, веб-технологиялар және индустрия трендтері туралы мақалалар мен insights.',
+      en: 'Articles and insights about digital marketing, SMM, branding, web technologies and industry trends from Creative Studio experts.'
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20">
+      <SEO 
+        title={seoContent.title[language]}
+        description={seoContent.description[language]}
+        lang={language}
+      />
       <section className="py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">

@@ -29,12 +29,14 @@ export interface IStorage {
   getAllCases(): Promise<Case[]>;
   getCaseBySlug(slug: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
+  getPaginatedCases(page: number, limit: number): Promise<{ data: Case[], total: number, page: number, totalPages: number }>;
   
   // Posts
   getAllPosts(): Promise<Post[]>;
   getPostBySlug(slug: string): Promise<Post | undefined>;
   getRecentPosts(limit: number): Promise<Post[]>;
   createPost(post: InsertPost): Promise<Post>;
+  getPaginatedPosts(page: number, limit: number): Promise<{ data: Post[], total: number, page: number, totalPages: number }>;
   
   // Testimonials
   getAllTestimonials(): Promise<Testimonial[]>;
@@ -60,7 +62,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createService(insertService: InsertService): Promise<Service> {
-    const [service] = await db.insert(services).values(insertService).returning();
+    const [service] = await db.insert(services).values(insertService as any).returning();
     return service;
   }
 
@@ -69,13 +71,32 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(cases).where(eq(cases.published, true)).orderBy(desc(cases.order));
   }
 
+  async getPaginatedCases(page: number = 1, limit: number = 10): Promise<{ data: Case[], total: number, page: number, totalPages: number }> {
+    const offset = (page - 1) * limit;
+    
+    const [casesData, countResult] = await Promise.all([
+      db.select().from(cases).where(eq(cases.published, true)).orderBy(desc(cases.order)).limit(limit).offset(offset),
+      db.select({ count: cases.id }).from(cases).where(eq(cases.published, true))
+    ]);
+
+    const total = countResult.length;
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: casesData,
+      total,
+      page,
+      totalPages
+    };
+  }
+
   async getCaseBySlug(slug: string): Promise<Case | undefined> {
     const [caseItem] = await db.select().from(cases).where(eq(cases.slug, slug));
     return caseItem || undefined;
   }
 
   async createCase(insertCase: InsertCase): Promise<Case> {
-    const [caseItem] = await db.insert(cases).values(insertCase).returning();
+    const [caseItem] = await db.insert(cases).values(insertCase as any).returning();
     return caseItem;
   }
 
@@ -93,8 +114,27 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(posts).where(eq(posts.published, true)).orderBy(desc(posts.createdAt)).limit(limit);
   }
 
+  async getPaginatedPosts(page: number = 1, limit: number = 10): Promise<{ data: Post[], total: number, page: number, totalPages: number }> {
+    const offset = (page - 1) * limit;
+    
+    const [postsData, countResult] = await Promise.all([
+      db.select().from(posts).where(eq(posts.published, true)).orderBy(desc(posts.createdAt)).limit(limit).offset(offset),
+      db.select({ count: posts.id }).from(posts).where(eq(posts.published, true))
+    ]);
+
+    const total = countResult.length;
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: postsData,
+      total,
+      page,
+      totalPages
+    };
+  }
+
   async createPost(insertPost: InsertPost): Promise<Post> {
-    const [post] = await db.insert(posts).values(insertPost).returning();
+    const [post] = await db.insert(posts).values(insertPost as any).returning();
     return post;
   }
 
@@ -108,7 +148,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTestimonial(insertTestimonial: InsertTestimonial): Promise<Testimonial> {
-    const [testimonial] = await db.insert(testimonials).values(insertTestimonial).returning();
+    const [testimonial] = await db.insert(testimonials).values(insertTestimonial as any).returning();
     return testimonial;
   }
 
@@ -123,7 +163,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createContact(insertContact: InsertContact): Promise<Contact> {
-    const [contact] = await db.insert(contacts).values(insertContact).returning();
+    const [contact] = await db.insert(contacts).values(insertContact as any).returning();
     return contact;
   }
 

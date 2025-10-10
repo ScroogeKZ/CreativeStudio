@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { SEO } from "@/components/SEO";
 import type { Case } from "@shared/schema";
 
 type Language = "ru" | "kz" | "en";
@@ -19,8 +20,26 @@ export function Cases({ language }: CasesProps) {
     queryKey: ['/api/cases'],
   });
 
+  const seoContent = {
+    title: {
+      ru: 'Кейсы и проекты | Creative Studio',
+      kz: 'Кейстер және жобалар | Creative Studio',
+      en: 'Cases and Projects | Creative Studio'
+    },
+    description: {
+      ru: 'Портфолио успешных маркетинговых проектов Creative Studio. Примеры работ по брендингу, digital-маркетингу, SMM и веб-разработке.',
+      kz: 'Creative Studio-дың табысты маркетингтік жобаларының портфолиосы. Брендинг, digital-маркетинг, SMM және веб-әзірлеу бойынша жұмыс мысалдары.',
+      en: 'Portfolio of successful marketing projects by Creative Studio. Examples of branding, digital marketing, SMM and web development work.'
+    }
+  };
+
   return (
     <div className="min-h-screen pt-20">
+      <SEO 
+        title={seoContent.title[language]}
+        description={seoContent.description[language]}
+        lang={language}
+      />
       <section className="py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
