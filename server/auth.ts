@@ -1,11 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import { db } from "./db";
 import { adminUsers, type AdminUser } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "./logger";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+if (!process.env.JWT_SECRET) {
+  logger.warn("JWT_SECRET environment variable is not set. Using a temporary generated secret. For production, please set JWT_SECRET to a secure random string.");
+  process.env.JWT_SECRET = crypto.randomBytes(64).toString('hex');
+}
+
+const JWT_SECRET: string = process.env.JWT_SECRET!;
 const JWT_EXPIRES_IN = "7d";
 
 export interface AuthRequest extends Request {

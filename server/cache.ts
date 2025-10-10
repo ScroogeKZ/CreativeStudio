@@ -1,4 +1,5 @@
 import NodeCache from 'node-cache';
+import { logger } from './logger';
 
 // Cache TTL in seconds (10 minutes for content, 5 minutes for dynamic data)
 const CONTENT_TTL = 600; // 10 minutes
@@ -32,14 +33,14 @@ export const CACHE_KEYS = {
 // Clear all content cache
 export function clearContentCache() {
   contentCache.flushAll();
-  console.log('Content cache cleared');
+  logger.info('Content cache cleared');
 }
 
 // Clear specific cache entry
 export function clearCacheKey(key: string) {
   contentCache.del(key);
   dynamicCache.del(key);
-  console.log(`Cache cleared for key: ${key}`);
+  logger.info('Cache cleared for key', { key });
 }
 
 // Cache middleware for Express routes

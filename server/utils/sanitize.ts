@@ -14,9 +14,11 @@ export function sanitizeString(str: string | undefined | null): string {
  * Sanitize contact form data
  */
 export function sanitizeContactData(data: any) {
+  const email = data.email?.trim() || '';
+  
   return {
     name: sanitizeString(data.name),
-    email: validator.normalizeEmail(data.email) || data.email,
+    email: validator.isEmail(email) ? (validator.normalizeEmail(email) || email) : email,
     phone: data.phone ? sanitizeString(data.phone) : undefined,
     company: data.company ? sanitizeString(data.company) : undefined,
     message: sanitizeString(data.message),
