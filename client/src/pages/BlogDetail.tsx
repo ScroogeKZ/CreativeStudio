@@ -2,6 +2,7 @@ import { useRoute, Link } from "wouter";
 import { Calendar, User, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { createSafeHTML } from "@/lib/sanitize";
 
 type Language = "ru" | "kz" | "en";
 
@@ -103,7 +104,7 @@ export function BlogDetail({ language }: BlogDetailProps) {
 
           <div
             className="prose prose-lg max-w-none dark:prose-invert"
-            dangerouslySetInnerHTML={{ __html: mockPost.content[language] }}
+            dangerouslySetInnerHTML={createSafeHTML(mockPost.content[language])}
             data-testid="text-post-content"
           />
 
