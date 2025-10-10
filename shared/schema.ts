@@ -1,0 +1,109 @@
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+// Multilingual text type
+const multilingualTextSchema = z.object({
+  ru: z.string(),
+  kz: z.string(),
+  en: z.string(),
+});
+
+// Service Directions
+export const services = pgTable("services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug").notNull().unique(),
+  name: jsonb("name").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  subtitle: jsonb("subtitle").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  description: jsonb("description").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  color: varchar("color").notNull(), // digital, communication, research, tech
+  features: jsonb("features").$type<string[]>().notNull().default([]),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Case Studies
+export const cases = pgTable("cases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug").notNull().unique(),
+  title: jsonb("title").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  client: varchar("client").notNull(),
+  category: varchar("category").notNull(),
+  image: text("image").notNull(),
+  thumbnail: text("thumbnail").notNull(),
+  shortResult: jsonb("short_result").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  challenge: jsonb("challenge").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  solution: jsonb("solution").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  results: jsonb("results").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  kpi: jsonb("kpi").$type<Array<{ label: { ru: string; kz: string; en: string }; value: string }>>().notNull(),
+  screenshots: jsonb("screenshots").$type<string[]>().notNull().default([]),
+  published: boolean("published").notNull().default(true),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Blog Posts
+export const posts = pgTable("posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: varchar("slug").notNull().unique(),
+  title: jsonb("title").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  excerpt: jsonb("excerpt").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  content: jsonb("content").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  coverImage: text("cover_image").notNull(),
+  category: varchar("category").notNull(),
+  author: varchar("author").notNull().default("CreativeStudio"),
+  published: boolean("published").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Testimonials
+export const testimonials = pgTable("testimonials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientName: varchar("client_name").notNull(),
+  clientPosition: jsonb("client_position").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  companyName: varchar("company_name").notNull(),
+  avatar: text("avatar"),
+  quote: jsonb("quote").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  rating: integer("rating").notNull().default(5),
+  published: boolean("published").notNull().default(true),
+  order: integer("order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Contact Form Submissions
+export const contacts = pgTable("contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  email: varchar("email").notNull(),
+  phone: varchar("phone"),
+  company: varchar("company"),
+  message: text("message").notNull(),
+  status: varchar("status").notNull().default("new"), // new, contacted, closed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Insert Schemas
+export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
+export const insertCaseSchema = createInsertSchema(cases).omit({ id: true, createdAt: true });
+export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTestimonialSchema = createInsertSchema(testimonials).omit({ id: true, createdAt: true });
+export const insertContactSchema = createInsertSchema(contacts).omit({ id: true, createdAt: true, status: true });
+
+// Types
+export type Service = typeof services.$inferSelect;
+export type InsertService = z.infer<typeof insertServiceSchema>;
+
+export type Case = typeof cases.$inferSelect;
+export type InsertCase = z.infer<typeof insertCaseSchema>;
+
+export type Post = typeof posts.$inferSelect;
+export type InsertPost = z.infer<typeof insertPostSchema>;
+
+export type Testimonial = typeof testimonials.$inferSelect;
+export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+
+export type Contact = typeof contacts.$inferSelect;
+export type InsertContact = z.infer<typeof insertContactSchema>;
