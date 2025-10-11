@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema } from "@shared/schema";
+import { insertContactSchema, insertServiceSchema, insertCaseSchema, insertPostSchema, insertTestimonialSchema } from "@shared/schema";
 import { z } from "zod";
 import { authMiddleware, loginAdmin, type AuthRequest } from "./auth";
 import { contentCache, CACHE_KEYS, clearCacheKey } from "./cache";
@@ -248,6 +248,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(contact);
     } catch (error) {
       res.status(500).json({ error: "Failed to update contact status" });
+    }
+  });
+
+  // Admin CRUD endpoints for Services
+  app.post("/api/admin/services", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertServiceSchema.parse(req.body);
+      const service = await storage.createService(validatedData);
+      clearCacheKey(CACHE_KEYS.ALL_SERVICES);
+      res.status(201).json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid service data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create service" });
+    }
+  });
+
+  app.patch("/api/admin/services/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertServiceSchema.partial().parse(req.body);
+      const service = await storage.updateService(req.params.id, validatedData);
+      if (!service) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      clearCacheKey(CACHE_KEYS.ALL_SERVICES);
+      clearCacheKey(CACHE_KEYS.SERVICE_BY_SLUG(service.slug));
+      res.json(service);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid service data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update service" });
+    }
+  });
+
+  app.delete("/api/admin/services/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteService(req.params.id);
+      clearCacheKey(CACHE_KEYS.ALL_SERVICES);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete service" });
+    }
+  });
+
+  // Admin CRUD endpoints for Cases
+  app.post("/api/admin/cases", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertCaseSchema.parse(req.body);
+      const caseItem = await storage.createCase(validatedData);
+      clearCacheKey(CACHE_KEYS.ALL_CASES);
+      res.status(201).json(caseItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid case data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create case" });
+    }
+  });
+
+  app.patch("/api/admin/cases/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertCaseSchema.partial().parse(req.body);
+      const caseItem = await storage.updateCase(req.params.id, validatedData);
+      if (!caseItem) {
+        return res.status(404).json({ error: "Case not found" });
+      }
+      clearCacheKey(CACHE_KEYS.ALL_CASES);
+      clearCacheKey(CACHE_KEYS.CASE_BY_SLUG(caseItem.slug));
+      res.json(caseItem);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid case data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update case" });
+    }
+  });
+
+  app.delete("/api/admin/cases/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteCase(req.params.id);
+      clearCacheKey(CACHE_KEYS.ALL_CASES);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete case" });
+    }
+  });
+
+  // Admin CRUD endpoints for Posts
+  app.post("/api/admin/posts", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertPostSchema.parse(req.body);
+      const post = await storage.createPost(validatedData);
+      clearCacheKey(CACHE_KEYS.ALL_POSTS);
+      res.status(201).json(post);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid post data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  app.patch("/api/admin/posts/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertPostSchema.partial().parse(req.body);
+      const post = await storage.updatePost(req.params.id, validatedData);
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      clearCacheKey(CACHE_KEYS.ALL_POSTS);
+      clearCacheKey(CACHE_KEYS.POST_BY_SLUG(post.slug));
+      res.json(post);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid post data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update post" });
+    }
+  });
+
+  app.delete("/api/admin/posts/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deletePost(req.params.id);
+      clearCacheKey(CACHE_KEYS.ALL_POSTS);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
+  // Admin CRUD endpoints for Testimonials
+  app.post("/api/admin/testimonials", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertTestimonialSchema.parse(req.body);
+      const testimonial = await storage.createTestimonial(validatedData);
+      clearCacheKey(CACHE_KEYS.ALL_TESTIMONIALS);
+      res.status(201).json(testimonial);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid testimonial data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create testimonial" });
+    }
+  });
+
+  app.patch("/api/admin/testimonials/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertTestimonialSchema.partial().parse(req.body);
+      const testimonial = await storage.updateTestimonial(req.params.id, validatedData);
+      if (!testimonial) {
+        return res.status(404).json({ error: "Testimonial not found" });
+      }
+      clearCacheKey(CACHE_KEYS.ALL_TESTIMONIALS);
+      res.json(testimonial);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid testimonial data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update testimonial" });
+    }
+  });
+
+  app.delete("/api/admin/testimonials/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteTestimonial(req.params.id);
+      clearCacheKey(CACHE_KEYS.ALL_TESTIMONIALS);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete testimonial" });
+    }
+  });
+
+  // Get all items for admin (including unpublished)
+  app.get("/api/admin/services", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const services = await storage.getAllServices();
+      res.json(services);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch services" });
+    }
+  });
+
+  app.get("/api/admin/cases", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const cases = await storage.getAllCases();
+      res.json(cases);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch cases" });
+    }
+  });
+
+  app.get("/api/admin/posts", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const posts = await storage.getAllPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
+  app.get("/api/admin/testimonials", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const testimonials = await storage.getAllTestimonials();
+      res.json(testimonials);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch testimonials" });
     }
   });
 

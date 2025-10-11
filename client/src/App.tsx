@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/lib/auth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Home } from "@/pages/Home";
@@ -13,6 +15,8 @@ import { CaseDetail } from "@/pages/CaseDetail";
 import { Blog } from "@/pages/Blog";
 import { BlogDetail } from "@/pages/BlogDetail";
 import { Contact } from "@/pages/Contact";
+import Login from "@/pages/admin/Login";
+import Dashboard from "@/pages/admin/Dashboard";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
 
@@ -30,23 +34,38 @@ function Router() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header language={language} setLanguage={handleLanguageChange} />
-      <main className="flex-1">
-        <Switch>
-          <Route path="/" component={() => <Home language={language} />} />
-          <Route path="/services/:slug" component={() => <ServiceDetail language={language} />} />
-          <Route path="/services" component={() => <ServiceDetail language={language} />} />
-          <Route path="/cases/:slug" component={() => <CaseDetail language={language} />} />
-          <Route path="/cases" component={() => <Cases language={language} />} />
-          <Route path="/blog/:slug" component={() => <BlogDetail language={language} />} />
-          <Route path="/blog" component={() => <Blog language={language} />} />
-          <Route path="/contact" component={() => <Contact language={language} />} />
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-      <Footer language={language} />
-    </div>
+    <Switch>
+      <Route path="/admin/login" component={Login} />
+      <Route path="/admin" component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/admin/:rest*">
+        {() => (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route>
+        {() => (
+          <div className="flex flex-col min-h-screen">
+            <Header language={language} setLanguage={handleLanguageChange} />
+            <main className="flex-1">
+              <Switch>
+                <Route path="/" component={() => <Home language={language} />} />
+                <Route path="/services/:slug" component={() => <ServiceDetail language={language} />} />
+                <Route path="/services" component={() => <ServiceDetail language={language} />} />
+                <Route path="/cases/:slug" component={() => <CaseDetail language={language} />} />
+                <Route path="/cases" component={() => <Cases language={language} />} />
+                <Route path="/blog/:slug" component={() => <BlogDetail language={language} />} />
+                <Route path="/blog" component={() => <Blog language={language} />} />
+                <Route path="/contact" component={() => <Contact language={language} />} />
+                <Route component={NotFound} />
+              </Switch>
+            </main>
+            <Footer language={language} />
+          </div>
+        )}
+      </Route>
+    </Switch>
   );
 }
 
@@ -54,10 +73,12 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
