@@ -37,7 +37,7 @@ export default function AdminPosts() {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertPost) =>
-      apiRequest('/api/admin/posts', 'POST', data),
+      apiRequest('/api/admin/posts', {method: 'POST', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
@@ -58,7 +58,7 @@ export default function AdminPosts() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertPost> }) =>
-      apiRequest(`/api/admin/posts/${id}`, 'PATCH', data),
+      apiRequest(`/api/admin/posts/${id}`, {method: 'PATCH', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
@@ -79,7 +79,7 @@ export default function AdminPosts() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/posts/${id}`, 'DELETE'),
+      apiRequest(`/api/admin/posts/${id}`, {method: 'DELETE'}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });

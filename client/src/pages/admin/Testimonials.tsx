@@ -37,7 +37,7 @@ export default function AdminTestimonials() {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertTestimonial) =>
-      apiRequest('/api/admin/testimonials', 'POST', data),
+      apiRequest('/api/admin/testimonials', {method: 'POST', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/testimonials'] });
       queryClient.invalidateQueries({ queryKey: ['/api/testimonials'] });
@@ -58,7 +58,7 @@ export default function AdminTestimonials() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertTestimonial> }) =>
-      apiRequest(`/api/admin/testimonials/${id}`, 'PATCH', data),
+      apiRequest(`/api/admin/testimonials/${id}`, {method: 'PATCH', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/testimonials'] });
       queryClient.invalidateQueries({ queryKey: ['/api/testimonials'] });
@@ -79,7 +79,7 @@ export default function AdminTestimonials() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/testimonials/${id}`, 'DELETE'),
+      apiRequest(`/api/admin/testimonials/${id}`, {method: 'DELETE'}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/testimonials'] });
       queryClient.invalidateQueries({ queryKey: ['/api/testimonials'] });

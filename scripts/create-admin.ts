@@ -9,11 +9,14 @@ async function createAdmin() {
 
   try {
     // Check if admin already exists
-    const existing = await db.select().from(adminUsers).where((adminUsers) => adminUsers.email === email);
+    const { eq } = await import('drizzle-orm');
+    const existing = await db.select().from(adminUsers).where(eq(adminUsers.email, email));
     
     if (existing.length > 0) {
-      console.log('❌ Admin user already exists');
-      process.exit(1);
+      console.log('✅ Admin user already exists');
+      console.log('📧 Email:', email);
+      console.log('🔑 Password:', password);
+      process.exit(0);
     }
 
     // Create admin

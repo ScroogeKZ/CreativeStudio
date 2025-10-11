@@ -37,7 +37,7 @@ export default function AdminCases() {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertCase) =>
-      apiRequest('/api/admin/cases', 'POST', data),
+      apiRequest('/api/admin/cases', {method: 'POST', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
       queryClient.invalidateQueries({ queryKey: ['/api/cases'] });
@@ -58,7 +58,7 @@ export default function AdminCases() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertCase> }) =>
-      apiRequest(`/api/admin/cases/${id}`, 'PATCH', data),
+      apiRequest(`/api/admin/cases/${id}`, {method: 'PATCH', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
       queryClient.invalidateQueries({ queryKey: ['/api/cases'] });
@@ -79,7 +79,7 @@ export default function AdminCases() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/cases/${id}`, 'DELETE'),
+      apiRequest(`/api/admin/cases/${id}`, {method: 'DELETE'}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/cases'] });
       queryClient.invalidateQueries({ queryKey: ['/api/cases'] });

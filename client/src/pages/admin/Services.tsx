@@ -3,7 +3,15 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { AdminLayout } from './Dashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { MultilingualInput } from '@/components/admin/MultilingualInput';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -25,21 +33,67 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { Service, InsertService } from '@shared/schema';
 
+interface ServiceFormData {
+  name: { ru: string; kz: string; en: string };
+  subtitle: { ru: string; kz: string; en: string };
+  description: { ru: string; kz: string; en: string };
+  slug: string;
+  color: string;
+  features: string;
+  order: number;
+}
+
 export default function AdminServices() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  
+  const [formData, setFormData] = useState<ServiceFormData>({
+    name: { ru: '', kz: '', en: '' },
+    subtitle: { ru: '', kz: '', en: '' },
+    description: { ru: '', kz: '', en: '' },
+    slug: '',
+    color: 'digital',
+    features: '',
+    order: 0,
+  });
 
   const { data: services = [], isLoading } = useQuery<Service[]>({
     queryKey: ['/api/services'],
   });
 
+  const resetForm = () => {
+    setFormData({
+      name: { ru: '', kz: '', en: '' },
+      subtitle: { ru: '', kz: '', en: '' },
+      description: { ru: '', kz: '', en: '' },
+      slug: '',
+      color: 'digital',
+      features: '',
+      order: 0,
+    });
+  };
+
+  const loadEditData = (service: Service) => {
+    setFormData({
+      name: service.name,
+      subtitle: service.subtitle,
+      description: service.description,
+      slug: service.slug,
+      color: service.color,
+      features: service.features.join(', '),
+      order: service.order,
+    });
+    setEditingService(service);
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: InsertService) =>
-      apiRequest('/api/admin/services', 'POST', data),
+      apiRequest('/api/admin/services', {method: 'POST', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services'] });
       setIsCreateOpen(false);
+      resetForm();
       toast({
         title: 'Успешно',
         description: 'Услуга создана',
@@ -56,10 +110,11 @@ export default function AdminServices() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertService> }) =>
-      apiRequest(`/api/admin/services/${id}`, 'PATCH', data),
+      apiRequest(`/api/admin/services/${id}`, {method: 'PATCH', body: JSON.stringify(data)}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services'] });
       setEditingService(null);
+      resetForm();
       toast({
         title: 'Успешно',
         description: 'Услуга обновлена',
@@ -76,7 +131,7 @@ export default function AdminServices() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      apiRequest(`/api/admin/services/${id}`, 'DELETE'),
+      apiRequest(`/api/admin/services/${id}`, {method: 'DELETE'}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/services'] });
       toast({
@@ -93,22 +148,41 @@ export default function AdminServices() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    
+    const featuresArray = formData.features
+      .split(',')
+      .map(f => f.trim())
+      .filter(f => f.length > 0);
+
     const data: InsertService = {
-      title: formData.get('title') as string,
-      slug: formData.get('slug') as string,
-      description: formData.get('description') as string,
-      icon: formData.get('icon') as string,
-      order: parseInt(formData.get('order') as string) || 0,
+      name: formData.name,
+      subtitle: formData.subtitle,
+      description: formData.description,
+      slug: formData.slug,
+      color: formData.color,
+      features: featuresArray,
+      order: formData.order,
     };
 
-    if (isEdit && editingService) {
+    if (editingService) {
       updateMutation.mutate({ id: editingService.id, data });
     } else {
       createMutation.mutate(data);
     }
+  };
+
+  const handleCreateOpen = (open: boolean) => {
+    setIsCreateOpen(open);
+    if (!open) {
+      resetForm();
+    }
+  };
+
+  const handleEditClose = () => {
+    setEditingService(null);
+    resetForm();
   };
 
   return (
@@ -116,84 +190,105 @@ export default function AdminServices() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Услуги</h2>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <Dialog open={isCreateOpen} onOpenChange={handleCreateOpen}>
             <DialogTrigger asChild>
               <Button data-testid="button-create-service">
                 <Plus className="h-4 w-4 mr-2" />
                 Добавить услугу
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Новая услуга</DialogTitle>
                 <DialogDescription>
                   Заполните информацию о новой услуге
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <MultilingualInput
+                  name="name"
+                  label="Название"
+                  value={formData.name}
+                  onChange={(value) => setFormData({ ...formData, name: value })}
+                  type="input"
+                  required
+                />
+
+                <MultilingualInput
+                  name="subtitle"
+                  label="Подзаголовок"
+                  value={formData.subtitle}
+                  onChange={(value) => setFormData({ ...formData, subtitle: value })}
+                  type="input"
+                  required
+                />
+
+                <MultilingualInput
+                  name="description"
+                  label="Описание"
+                  value={formData.description}
+                  onChange={(value) => setFormData({ ...formData, description: value })}
+                  type="textarea"
+                  required
+                />
+
                 <div className="space-y-2">
-                  <label htmlFor="title" className="text-sm font-medium">
-                    Название
-                  </label>
-                  <Input
-                    id="title"
-                    name="title"
-                    required
-                    data-testid="input-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="slug" className="text-sm font-medium">
-                    Slug (URL)
-                  </label>
+                  <Label htmlFor="slug">Slug (URL) <span className="text-destructive">*</span></Label>
                   <Input
                     id="slug"
-                    name="slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                     required
                     data-testid="input-slug"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="description" className="text-sm font-medium">
-                    Описание
-                  </label>
-                  <Textarea
-                    id="description"
-                    name="description"
-                    required
-                    rows={4}
-                    data-testid="input-description"
-                  />
+                  <Label htmlFor="color">Цвет <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={formData.color}
+                    onValueChange={(value) => setFormData({ ...formData, color: value })}
+                  >
+                    <SelectTrigger id="color" data-testid="select-color">
+                      <SelectValue placeholder="Выберите цвет" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="digital">Digital</SelectItem>
+                      <SelectItem value="communication">Communication</SelectItem>
+                      <SelectItem value="research">Research</SelectItem>
+                      <SelectItem value="tech">Tech</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="icon" className="text-sm font-medium">
-                    Иконка (lucide-react название)
-                  </label>
+                  <Label htmlFor="features">Особенности (через запятую)</Label>
                   <Input
-                    id="icon"
-                    name="icon"
-                    required
-                    data-testid="input-icon"
+                    id="features"
+                    value={formData.features}
+                    onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+                    placeholder="Функция 1, Функция 2, Функция 3"
+                    data-testid="input-features"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="order" className="text-sm font-medium">
-                    Порядок
-                  </label>
+                  <Label htmlFor="order">Порядок <span className="text-destructive">*</span></Label>
                   <Input
                     id="order"
-                    name="order"
                     type="number"
-                    defaultValue={0}
+                    value={formData.order}
+                    onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                     required
                     data-testid="input-order"
                   />
                 </div>
+
                 <div className="flex justify-end gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsCreateOpen(false)}
+                    onClick={() => handleCreateOpen(false)}
                     data-testid="button-cancel"
                   >
                     Отмена
@@ -216,7 +311,7 @@ export default function AdminServices() {
                 <TableRow>
                   <TableHead>Название</TableHead>
                   <TableHead>Slug</TableHead>
-                  <TableHead>Описание</TableHead>
+                  <TableHead>Цвет</TableHead>
                   <TableHead>Порядок</TableHead>
                   <TableHead className="text-right">Действия</TableHead>
                 </TableRow>
@@ -231,16 +326,16 @@ export default function AdminServices() {
                 ) : (
                   services.map((service) => (
                     <TableRow key={service.id} data-testid={`row-service-${service.id}`}>
-                      <TableCell className="font-medium">{service.title}</TableCell>
+                      <TableCell className="font-medium">{service.name.ru}</TableCell>
                       <TableCell>{service.slug}</TableCell>
-                      <TableCell className="max-w-md truncate">{service.description}</TableCell>
+                      <TableCell className="capitalize">{service.color}</TableCell>
                       <TableCell>{service.order}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setEditingService(service)}
+                            onClick={() => loadEditData(service)}
                             data-testid={`button-edit-${service.id}`}
                           >
                             <Pencil className="h-4 w-4" />
@@ -269,82 +364,99 @@ export default function AdminServices() {
 
         {/* Edit Dialog */}
         {editingService && (
-          <Dialog open={!!editingService} onOpenChange={() => setEditingService(null)}>
-            <DialogContent className="max-w-2xl">
+          <Dialog open={!!editingService} onOpenChange={(open) => !open && handleEditClose()}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Редактировать услугу</DialogTitle>
                 <DialogDescription>
                   Обновите информацию об услуге
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <MultilingualInput
+                  name="edit-name"
+                  label="Название"
+                  value={formData.name}
+                  onChange={(value) => setFormData({ ...formData, name: value })}
+                  type="input"
+                  required
+                />
+
+                <MultilingualInput
+                  name="edit-subtitle"
+                  label="Подзаголовок"
+                  value={formData.subtitle}
+                  onChange={(value) => setFormData({ ...formData, subtitle: value })}
+                  type="input"
+                  required
+                />
+
+                <MultilingualInput
+                  name="edit-description"
+                  label="Описание"
+                  value={formData.description}
+                  onChange={(value) => setFormData({ ...formData, description: value })}
+                  type="textarea"
+                  required
+                />
+
                 <div className="space-y-2">
-                  <label htmlFor="edit-title" className="text-sm font-medium">
-                    Название
-                  </label>
-                  <Input
-                    id="edit-title"
-                    name="title"
-                    defaultValue={editingService.title}
-                    required
-                    data-testid="input-edit-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="edit-slug" className="text-sm font-medium">
-                    Slug (URL)
-                  </label>
+                  <Label htmlFor="edit-slug">Slug (URL) <span className="text-destructive">*</span></Label>
                   <Input
                     id="edit-slug"
-                    name="slug"
-                    defaultValue={editingService.slug}
+                    value={formData.slug}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                     required
                     data-testid="input-edit-slug"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="edit-description" className="text-sm font-medium">
-                    Описание
-                  </label>
-                  <Textarea
-                    id="edit-description"
-                    name="description"
-                    defaultValue={editingService.description}
-                    required
-                    rows={4}
-                    data-testid="input-edit-description"
-                  />
+                  <Label htmlFor="edit-color">Цвет <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={formData.color}
+                    onValueChange={(value) => setFormData({ ...formData, color: value })}
+                  >
+                    <SelectTrigger id="edit-color" data-testid="select-edit-color">
+                      <SelectValue placeholder="Выберите цвет" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="digital">Digital</SelectItem>
+                      <SelectItem value="communication">Communication</SelectItem>
+                      <SelectItem value="research">Research</SelectItem>
+                      <SelectItem value="tech">Tech</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="edit-icon" className="text-sm font-medium">
-                    Иконка (lucide-react название)
-                  </label>
+                  <Label htmlFor="edit-features">Особенности (через запятую)</Label>
                   <Input
-                    id="edit-icon"
-                    name="icon"
-                    defaultValue={editingService.icon}
-                    required
-                    data-testid="input-edit-icon"
+                    id="edit-features"
+                    value={formData.features}
+                    onChange={(e) => setFormData({ ...formData, features: e.target.value })}
+                    placeholder="Функция 1, Функция 2, Функция 3"
+                    data-testid="input-edit-features"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <label htmlFor="edit-order" className="text-sm font-medium">
-                    Порядок
-                  </label>
+                  <Label htmlFor="edit-order">Порядок <span className="text-destructive">*</span></Label>
                   <Input
                     id="edit-order"
-                    name="order"
                     type="number"
-                    defaultValue={editingService.order}
+                    value={formData.order}
+                    onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
                     required
                     data-testid="input-edit-order"
                   />
                 </div>
+
                 <div className="flex justify-end gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setEditingService(null)}
+                    onClick={handleEditClose}
                     data-testid="button-cancel-edit"
                   >
                     Отмена

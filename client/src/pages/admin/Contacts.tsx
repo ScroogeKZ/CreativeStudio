@@ -29,7 +29,7 @@ export default function AdminContacts() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiRequest(`/api/admin/contacts/${id}/status`, 'PATCH', { status }),
+      apiRequest(`/api/admin/contacts/${id}/status`, {method: 'PATCH', body: JSON.stringify({ status })}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/contacts'] });
       toast({
