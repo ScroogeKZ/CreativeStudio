@@ -4,11 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SEO } from "@/components/SEO";
 import { MapPin, Phone, Mail } from "lucide-react";
-import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { InsertContact } from "@shared/schema";
+import { insertContactSchema } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 type Language = "ru" | "kz" | "en";
 
@@ -39,23 +49,30 @@ const content = {
 
 export function Contact({ language }: ContactProps) {
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    message: "",
+  
+  const form = useForm<InsertContact>({
+    resolver: zodResolver(insertContactSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      message: "",
+    },
   });
 
   const contactMutation = useMutation({
     mutationFn: async (data: InsertContact) => {
-      return await apiRequest("POST", "/api/contacts", data);
+      return await apiRequest("/api/contacts", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       toast({
         title: content.success[language],
       });
-      setFormData({ name: "", email: "", phone: "", company: "", message: "" });
+      form.reset();
     },
     onError: () => {
       toast({
@@ -65,13 +82,8 @@ export function Contact({ language }: ContactProps) {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    contactMutation.mutate(formData);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onSubmit = (data: InsertContact) => {
+    contactMutation.mutate(data);
   };
 
   const seoContent = {
@@ -107,87 +119,88 @@ export function Contact({ language }: ContactProps) {
 
           <div className="grid lg:grid-cols-2 gap-12">
             <Card className="p-8">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium mb-2">
-                    {content.form.name[language]} *
-                  </label>
-                  <Input
-                    id="name"
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <FormField
+                    control={form.control}
                     name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    data-testid="input-name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{content.form.name[language]} *</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-name" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-2">
-                    {content.form.email[language]} *
-                  </label>
-                  <Input
-                    id="email"
+                  <FormField
+                    control={form.control}
                     name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    data-testid="input-email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{content.form.email[language]} *</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" data-testid="input-email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-medium mb-2">
-                    {content.form.phone[language]}
-                  </label>
-                  <Input
-                    id="phone"
+                  <FormField
+                    control={form.control}
                     name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    data-testid="input-phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{content.form.phone[language]}</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="tel" data-testid="input-phone" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div>
-                  <label htmlFor="company" className="block text-sm font-medium mb-2">
-                    {content.form.company[language]}
-                  </label>
-                  <Input
-                    id="company"
+                  <FormField
+                    control={form.control}
                     name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    data-testid="input-company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{content.form.company[language]}</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="input-company" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium mb-2">
-                    {content.form.message[language]} *
-                  </label>
-                  <Textarea
-                    id="message"
+                  <FormField
+                    control={form.control}
                     name="message"
-                    value={formData.message}
-                    onChange={handleChange}
-                    required
-                    rows={5}
-                    data-testid="input-message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{content.form.message[language]} *</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={5} data-testid="input-message" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-primary hover:bg-primary"
-                  disabled={contactMutation.isPending}
-                  data-testid="button-submit"
-                >
-                  {contactMutation.isPending ? content.form.sending[language] : content.form.submit[language]}
-                </Button>
-              </form>
+                  <Button
+                    type="submit"
+                    className="w-full bg-primary hover:bg-primary"
+                    disabled={contactMutation.isPending}
+                    data-testid="button-submit"
+                  >
+                    {contactMutation.isPending ? content.form.sending[language] : content.form.submit[language]}
+                  </Button>
+                </form>
+              </Form>
             </Card>
 
             <div className="space-y-6">
