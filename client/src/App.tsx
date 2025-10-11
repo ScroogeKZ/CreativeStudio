@@ -17,6 +17,11 @@ import { BlogDetail } from "@/pages/BlogDetail";
 import { Contact } from "@/pages/Contact";
 import Login from "@/pages/admin/Login";
 import Dashboard from "@/pages/admin/Dashboard";
+import AdminServices from "@/pages/admin/Services";
+import AdminCases from "@/pages/admin/Cases";
+import AdminPosts from "@/pages/admin/Posts";
+import AdminTestimonials from "@/pages/admin/Testimonials";
+import AdminContacts from "@/pages/admin/Contacts";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
 
@@ -37,13 +42,11 @@ function Router() {
     <Switch>
       <Route path="/admin/login" component={Login} />
       <Route path="/admin" component={() => <ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/admin/:rest*">
-        {() => (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        )}
-      </Route>
+      <Route path="/admin/services" component={() => <ProtectedRoute><AdminServices /></ProtectedRoute>} />
+      <Route path="/admin/cases" component={() => <ProtectedRoute><AdminCases /></ProtectedRoute>} />
+      <Route path="/admin/posts" component={() => <ProtectedRoute><AdminPosts /></ProtectedRoute>} />
+      <Route path="/admin/testimonials" component={() => <ProtectedRoute><AdminTestimonials /></ProtectedRoute>} />
+      <Route path="/admin/contacts" component={() => <ProtectedRoute><AdminContacts /></ProtectedRoute>} />
       <Route>
         {() => (
           <div className="flex flex-col min-h-screen">
