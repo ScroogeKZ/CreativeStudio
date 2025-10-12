@@ -48,7 +48,6 @@ export default function Login() {
       <SEO 
         title="Вход в админ-панель"
         description="Вход в систему управления контентом"
-        noindex
       />
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">

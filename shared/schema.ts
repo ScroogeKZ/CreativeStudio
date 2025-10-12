@@ -95,6 +95,50 @@ export const adminUsers = pgTable("admin_users", {
   lastLoginAt: timestamp("last_login_at"),
 });
 
+// Client Users
+export const clients = pgTable("clients", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  name: varchar("name").notNull(),
+  company: varchar("company"),
+  phone: varchar("phone"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLoginAt: timestamp("last_login_at"),
+});
+
+// Client Orders
+export const orders = pgTable("orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  clientId: varchar("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  title: jsonb("title").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  description: jsonb("description").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, in_progress, review, completed, cancelled
+  progress: integer("progress").notNull().default(0), // 0-100
+  serviceType: varchar("service_type").notNull(),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  caseId: varchar("case_id").references(() => cases.id), // Optional: link to case study when completed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Relations
+export const clientsRelations = relations(clients, ({ many }) => ({
+  orders: many(orders),
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  client: one(clients, {
+    fields: [orders.clientId],
+    references: [clients.id],
+  }),
+  case: one(cases, {
+    fields: [orders.caseId],
+    references: [cases.id],
+  }),
+}));
+
 // Insert Schemas
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
 export const insertCaseSchema = createInsertSchema(cases).omit({ id: true, createdAt: true });
@@ -108,6 +152,8 @@ export const insertContactSchema = createInsertSchema(contacts).omit({ id: true,
   message: z.string().min(10, "Message must be at least 10 characters").max(2000, "Message too long"),
 });
 export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true, lastLoginAt: true });
+export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true, lastLoginAt: true });
+export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type Service = typeof services.$inferSelect;
@@ -127,3 +173,9 @@ export type InsertContact = z.infer<typeof insertContactSchema>;
 
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;

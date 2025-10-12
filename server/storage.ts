@@ -6,6 +6,8 @@ import {
   testimonials,
   contacts,
   adminUsers,
+  clients,
+  orders,
   type Service,
   type InsertService,
   type Case,
@@ -18,6 +20,10 @@ import {
   type InsertContact,
   type AdminUser,
   type InsertAdminUser,
+  type Client,
+  type InsertClient,
+  type Order,
+  type InsertOrder,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -68,6 +74,24 @@ export interface IStorage {
   getAdminByEmail(email: string): Promise<AdminUser | undefined>;
   createAdmin(admin: InsertAdminUser): Promise<AdminUser>;
   updateAdminLastLogin(id: string): Promise<void>;
+  
+  // Clients
+  getAllClients(): Promise<Client[]>;
+  getClientById(id: string): Promise<Client | undefined>;
+  getClientByEmail(email: string): Promise<Client | undefined>;
+  createClient(client: InsertClient): Promise<Client>;
+  updateClient(id: string, client: Partial<InsertClient>): Promise<Client | undefined>;
+  deleteClient(id: string): Promise<void>;
+  
+  // Orders
+  getAllOrders(): Promise<Order[]>;
+  getOrderById(id: string): Promise<Order | undefined>;
+  getOrdersByClientId(clientId: string): Promise<Order[]>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: string, order: Partial<InsertOrder>): Promise<Order | undefined>;
+  deleteOrder(id: string): Promise<void>;
+  updateOrderProgress(id: string, progress: number): Promise<Order | undefined>;
+  updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -261,6 +285,73 @@ export class DatabaseStorage implements IStorage {
 
   async updateAdminLastLogin(id: string): Promise<void> {
     await db.update(adminUsers).set({ lastLoginAt: new Date() }).where(eq(adminUsers.id, id));
+  }
+
+  // Clients
+  async getAllClients(): Promise<Client[]> {
+    return await db.select().from(clients).orderBy(desc(clients.createdAt));
+  }
+
+  async getClientById(id: string): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client || undefined;
+  }
+
+  async getClientByEmail(email: string): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.email, email));
+    return client || undefined;
+  }
+
+  async createClient(insertClient: InsertClient): Promise<Client> {
+    const [client] = await db.insert(clients).values(insertClient as any).returning();
+    return client;
+  }
+
+  async updateClient(id: string, updateData: Partial<InsertClient>): Promise<Client | undefined> {
+    const [client] = await db.update(clients).set(updateData as any).where(eq(clients.id, id)).returning();
+    return client || undefined;
+  }
+
+  async deleteClient(id: string): Promise<void> {
+    await db.delete(clients).where(eq(clients.id, id));
+  }
+
+  // Orders
+  async getAllOrders(): Promise<Order[]> {
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  }
+
+  async getOrderById(id: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order || undefined;
+  }
+
+  async getOrdersByClientId(clientId: string): Promise<Order[]> {
+    return await db.select().from(orders).where(eq(orders.clientId, clientId)).orderBy(desc(orders.createdAt));
+  }
+
+  async createOrder(insertOrder: InsertOrder): Promise<Order> {
+    const [order] = await db.insert(orders).values(insertOrder as any).returning();
+    return order;
+  }
+
+  async updateOrder(id: string, updateData: Partial<InsertOrder>): Promise<Order | undefined> {
+    const [order] = await db.update(orders).set({ ...updateData, updatedAt: new Date() } as any).where(eq(orders.id, id)).returning();
+    return order || undefined;
+  }
+
+  async deleteOrder(id: string): Promise<void> {
+    await db.delete(orders).where(eq(orders.id, id));
+  }
+
+  async updateOrderProgress(id: string, progress: number): Promise<Order | undefined> {
+    const [order] = await db.update(orders).set({ progress, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return order || undefined;
+  }
+
+  async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
+    const [order] = await db.update(orders).set({ status, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
+    return order || undefined;
   }
 }
 

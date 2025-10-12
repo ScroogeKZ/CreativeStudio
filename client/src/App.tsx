@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/auth";
+import { ClientAuthProvider } from "@/lib/clientAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -22,6 +23,8 @@ import AdminCases from "@/pages/admin/Cases";
 import AdminPosts from "@/pages/admin/Posts";
 import AdminTestimonials from "@/pages/admin/Testimonials";
 import AdminContacts from "@/pages/admin/Contacts";
+import ClientLogin from "@/pages/client/Login";
+import ClientDashboard from "@/pages/client/Dashboard";
 import NotFound from "@/pages/not-found";
 import { useState } from "react";
 
@@ -47,6 +50,10 @@ function Router() {
       <Route path="/admin/posts" component={() => <ProtectedRoute><AdminPosts /></ProtectedRoute>} />
       <Route path="/admin/testimonials" component={() => <ProtectedRoute><AdminTestimonials /></ProtectedRoute>} />
       <Route path="/admin/contacts" component={() => <ProtectedRoute><AdminContacts /></ProtectedRoute>} />
+      
+      <Route path="/client/login" component={ClientLogin} />
+      <Route path="/client/dashboard" component={ClientDashboard} />
+      
       <Route>
         {() => (
           <div className="flex flex-col min-h-screen">
@@ -77,10 +84,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <ClientAuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ClientAuthProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -7,9 +7,16 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-function getHeaders(includeContentType: boolean = false): HeadersInit {
+function getHeaders(includeContentType: boolean = false, url?: string): HeadersInit {
   const headers: HeadersInit = {};
-  const token = localStorage.getItem('admin_token');
+  
+  // Determine which token to use based on URL
+  let token: string | null = null;
+  if (url && url.includes('/api/client')) {
+    token = localStorage.getItem('client_token');
+  } else {
+    token = localStorage.getItem('admin_token');
+  }
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -26,7 +33,7 @@ export async function apiRequest<T = any>(
   url: string,
   options?: RequestInit,
 ): Promise<T> {
-  const headers = getHeaders(options?.body !== undefined);
+  const headers = getHeaders(options?.body !== undefined, url);
   
   const res = await fetch(url, {
     ...options,
@@ -52,8 +59,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const headers = getHeaders();
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    const headers = getHeaders(false, url);
+    const res = await fetch(url, {
       headers,
       credentials: "include",
     });

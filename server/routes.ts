@@ -4,7 +4,9 @@ import { storage } from "./storage";
 import { insertContactSchema, insertServiceSchema, insertCaseSchema, insertPostSchema, insertTestimonialSchema } from "@shared/schema";
 import { z } from "zod";
 import { authMiddleware, loginAdmin, type AuthRequest } from "./auth";
+import { clientAuthMiddleware, registerClient, loginClient, type ClientAuthRequest } from "./clientAuth";
 import { contentCache, CACHE_KEYS, clearCacheKey } from "./cache";
+import { insertClientSchema, insertOrderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Services endpoints
@@ -456,6 +458,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(testimonials);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch testimonials" });
+    }
+  });
+
+  // Client Authentication endpoints
+  app.post("/api/client/register", async (req, res) => {
+    try {
+      const { email, password, name, company, phone } = req.body;
+      
+      if (!email || !password || !name) {
+        return res.status(400).json({ error: "Email, password, and name are required" });
+      }
+
+      const result = await registerClient(email, password, name, company, phone);
+      res.status(201).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("already exists")) {
+        return res.status(409).json({ error: "Client with this email already exists" });
+      }
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  app.post("/api/client/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const result = await loginClient(email, password);
+      
+      if (!result) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // Protected Client endpoints
+  app.get("/api/client/me", clientAuthMiddleware, async (req: ClientAuthRequest, res) => {
+    try {
+      if (!req.client) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      res.json({
+        id: req.client.id,
+        email: req.client.email,
+        name: req.client.name,
+        company: req.client.company,
+        phone: req.client.phone,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch client info" });
+    }
+  });
+
+  app.get("/api/client/orders", clientAuthMiddleware, async (req: ClientAuthRequest, res) => {
+    try {
+      if (!req.client) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const orders = await storage.getOrdersByClientId(req.client.id);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+
+  app.get("/api/client/orders/:id", clientAuthMiddleware, async (req: ClientAuthRequest, res) => {
+    try {
+      if (!req.client) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const order = await storage.getOrderById(req.params.id);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Verify order belongs to client
+      if (order.clientId !== req.client.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch order" });
+    }
+  });
+
+  app.get("/api/client/portfolio", clientAuthMiddleware, async (req: ClientAuthRequest, res) => {
+    try {
+      // Get published cases as portfolio examples
+      const cases = await storage.getAllCases();
+      res.json(cases);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch portfolio" });
+    }
+  });
+
+  // Admin endpoints for managing clients and orders
+  app.get("/api/admin/clients", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const clients = await storage.getAllClients();
+      res.json(clients);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch clients" });
+    }
+  });
+
+  app.post("/api/admin/clients", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertClientSchema.parse(req.body);
+      const client = await storage.createClient(validatedData);
+      res.status(201).json(client);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid client data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create client" });
+    }
+  });
+
+  app.patch("/api/admin/clients/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertClientSchema.partial().parse(req.body);
+      const client = await storage.updateClient(req.params.id, validatedData);
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      res.json(client);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid client data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update client" });
+    }
+  });
+
+  app.delete("/api/admin/clients/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteClient(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete client" });
+    }
+  });
+
+  app.get("/api/admin/orders", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const orders = await storage.getAllOrders();
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+
+  app.post("/api/admin/orders", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertOrderSchema.parse(req.body);
+      const order = await storage.createOrder(validatedData);
+      res.status(201).json(order);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid order data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create order" });
+    }
+  });
+
+  app.patch("/api/admin/orders/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const validatedData = insertOrderSchema.partial().parse(req.body);
+      const order = await storage.updateOrder(req.params.id, validatedData);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid order data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update order" });
+    }
+  });
+
+  app.patch("/api/admin/orders/:id/progress", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { progress } = req.body;
+      if (typeof progress !== 'number' || progress < 0 || progress > 100) {
+        return res.status(400).json({ error: "Progress must be a number between 0 and 100" });
+      }
+      const order = await storage.updateOrderProgress(req.params.id, progress);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update order progress" });
+    }
+  });
+
+  app.patch("/api/admin/orders/:id/status", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { status } = req.body;
+      const validStatuses = ["pending", "in_progress", "review", "completed", "cancelled"];
+      if (!status || !validStatuses.includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be one of: " + validStatuses.join(", ") });
+      }
+      const order = await storage.updateOrderStatus(req.params.id, status);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update order status" });
+    }
+  });
+
+  app.delete("/api/admin/orders/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteOrder(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete order" });
     }
   });
 
