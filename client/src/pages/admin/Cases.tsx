@@ -261,7 +261,7 @@ export default function AdminCases() {
                 ) : (
                   cases.map((caseItem) => (
                     <TableRow key={caseItem.id} data-testid={`row-case-${caseItem.id}`}>
-                      <TableCell className="font-medium">{caseItem.title}</TableCell>
+                      <TableCell className="font-medium">{caseItem.title.ru}</TableCell>
                       <TableCell>{caseItem.client}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs ${caseItem.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>

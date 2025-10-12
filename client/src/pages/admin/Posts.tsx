@@ -239,7 +239,7 @@ export default function AdminPosts() {
                 ) : (
                   posts.map((post) => (
                     <TableRow key={post.id} data-testid={`row-post-${post.id}`}>
-                      <TableCell className="font-medium">{post.title}</TableCell>
+                      <TableCell className="font-medium">{post.title.ru}</TableCell>
                       <TableCell>{post.author}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs ${post.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
@@ -247,7 +247,7 @@ export default function AdminPosts() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('ru-RU') : '-'}
+                        {post.createdAt ? new Date(post.createdAt).toLocaleDateString('ru-RU') : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
