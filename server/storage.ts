@@ -45,6 +45,7 @@ export interface IStorage {
   
   // Cases
   getAllCases(): Promise<Case[]>;
+  getAllCasesForAdmin(): Promise<Case[]>;
   getCaseBySlug(slug: string): Promise<Case | undefined>;
   getCaseById(id: string): Promise<Case | undefined>;
   createCase(caseData: InsertCase): Promise<Case>;
@@ -54,6 +55,7 @@ export interface IStorage {
   
   // Posts
   getAllPosts(): Promise<Post[]>;
+  getAllPostsForAdmin(): Promise<Post[]>;
   getPostBySlug(slug: string): Promise<Post | undefined>;
   getPostById(id: string): Promise<Post | undefined>;
   getRecentPosts(limit: number): Promise<Post[]>;
@@ -149,6 +151,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(cases).where(eq(cases.published, true)).orderBy(desc(cases.order));
   }
 
+  async getAllCasesForAdmin(): Promise<Case[]> {
+    return await db.select().from(cases).orderBy(desc(cases.order));
+  }
+
   async getPaginatedCases(page: number = 1, limit: number = 10): Promise<{ data: Case[], total: number, page: number, totalPages: number }> {
     const offset = (page - 1) * limit;
     
@@ -195,6 +201,10 @@ export class DatabaseStorage implements IStorage {
   // Posts
   async getAllPosts(): Promise<Post[]> {
     return await db.select().from(posts).where(eq(posts.published, true)).orderBy(desc(posts.createdAt));
+  }
+
+  async getAllPostsForAdmin(): Promise<Post[]> {
+    return await db.select().from(posts).orderBy(desc(posts.createdAt));
   }
 
   async getPostBySlug(slug: string): Promise<Post | undefined> {

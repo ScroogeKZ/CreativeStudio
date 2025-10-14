@@ -442,7 +442,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/cases", authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const cases = await storage.getAllCases();
+      const cases = await storage.getAllCasesForAdmin();
       res.json(cases);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch cases" });
@@ -451,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/posts", authMiddleware, async (req: AuthRequest, res) => {
     try {
-      const posts = await storage.getAllPosts();
+      const posts = await storage.getAllPostsForAdmin();
       res.json(posts);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch posts" });
@@ -780,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertOrderUpdateSchema.parse({
         ...req.body,
         orderId: req.params.orderId,
-        adminId: req.admin?.id || null,
+        adminId: req.user?.id || null,
       });
       const update = await storage.createUpdate(validatedData);
       res.status(201).json(update);
