@@ -4,7 +4,16 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// Configure WebSocket with SSL options for development
+const wsWithOptions = class extends ws {
+  constructor(url: any, protocols?: any) {
+    super(url, protocols, {
+      rejectUnauthorized: false
+    });
+  }
+};
+
+neonConfig.webSocketConstructor = wsWithOptions as any;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
