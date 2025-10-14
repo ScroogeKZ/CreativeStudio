@@ -8,6 +8,8 @@ import {
   adminUsers,
   clients,
   orders,
+  orderTasks,
+  orderUpdates,
   type Service,
   type InsertService,
   type Case,
@@ -24,6 +26,10 @@ import {
   type InsertClient,
   type Order,
   type InsertOrder,
+  type OrderTask,
+  type InsertOrderTask,
+  type OrderUpdate,
+  type InsertOrderUpdate,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -92,6 +98,20 @@ export interface IStorage {
   deleteOrder(id: string): Promise<void>;
   updateOrderProgress(id: string, progress: number): Promise<Order | undefined>;
   updateOrderStatus(id: string, status: string): Promise<Order | undefined>;
+
+  // Order Tasks
+  getTasksByOrderId(orderId: string): Promise<OrderTask[]>;
+  getTaskById(id: string): Promise<OrderTask | undefined>;
+  createTask(task: InsertOrderTask): Promise<OrderTask>;
+  updateTask(id: string, task: Partial<InsertOrderTask>): Promise<OrderTask | undefined>;
+  deleteTask(id: string): Promise<void>;
+  completeTask(id: string): Promise<OrderTask | undefined>;
+
+  // Order Updates
+  getUpdatesByOrderId(orderId: string): Promise<OrderUpdate[]>;
+  getUpdateById(id: string): Promise<OrderUpdate | undefined>;
+  createUpdate(update: InsertOrderUpdate): Promise<OrderUpdate>;
+  deleteUpdate(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -352,6 +372,57 @@ export class DatabaseStorage implements IStorage {
   async updateOrderStatus(id: string, status: string): Promise<Order | undefined> {
     const [order] = await db.update(orders).set({ status, updatedAt: new Date() }).where(eq(orders.id, id)).returning();
     return order || undefined;
+  }
+
+  // Order Tasks
+  async getTasksByOrderId(orderId: string): Promise<OrderTask[]> {
+    return await db.select().from(orderTasks).where(eq(orderTasks.orderId, orderId)).orderBy(orderTasks.order);
+  }
+
+  async getTaskById(id: string): Promise<OrderTask | undefined> {
+    const [task] = await db.select().from(orderTasks).where(eq(orderTasks.id, id));
+    return task || undefined;
+  }
+
+  async createTask(insertTask: InsertOrderTask): Promise<OrderTask> {
+    const [task] = await db.insert(orderTasks).values(insertTask as any).returning();
+    return task;
+  }
+
+  async updateTask(id: string, updateData: Partial<InsertOrderTask>): Promise<OrderTask | undefined> {
+    const [task] = await db.update(orderTasks).set({ ...updateData, updatedAt: new Date() } as any).where(eq(orderTasks.id, id)).returning();
+    return task || undefined;
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    await db.delete(orderTasks).where(eq(orderTasks.id, id));
+  }
+
+  async completeTask(id: string): Promise<OrderTask | undefined> {
+    const [task] = await db.update(orderTasks)
+      .set({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
+      .where(eq(orderTasks.id, id))
+      .returning();
+    return task || undefined;
+  }
+
+  // Order Updates
+  async getUpdatesByOrderId(orderId: string): Promise<OrderUpdate[]> {
+    return await db.select().from(orderUpdates).where(eq(orderUpdates.orderId, orderId)).orderBy(desc(orderUpdates.createdAt));
+  }
+
+  async getUpdateById(id: string): Promise<OrderUpdate | undefined> {
+    const [update] = await db.select().from(orderUpdates).where(eq(orderUpdates.id, id));
+    return update || undefined;
+  }
+
+  async createUpdate(insertUpdate: InsertOrderUpdate): Promise<OrderUpdate> {
+    const [update] = await db.insert(orderUpdates).values(insertUpdate as any).returning();
+    return update;
+  }
+
+  async deleteUpdate(id: string): Promise<void> {
+    await db.delete(orderUpdates).where(eq(orderUpdates.id, id));
   }
 }
 

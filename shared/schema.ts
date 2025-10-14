@@ -123,19 +123,61 @@ export const orders = pgTable("orders", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Relations
+// Order Tasks (этапы проекта)
+export const orderTasks = pgTable("order_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  title: jsonb("title").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  description: jsonb("description").$type<{ ru: string; kz: string; en: string }>(),
+  status: varchar("status").notNull().default("pending"), // pending, in_progress, completed
+  order: integer("order").notNull().default(0),
+  dueDate: timestamp("due_date"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Order Updates (обновления и комментарии)
+export const orderUpdates = pgTable("order_updates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  adminId: varchar("admin_id").references(() => adminUsers.id, { onDelete: 'set null' }),
+  title: jsonb("title").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  message: jsonb("message").$type<{ ru: string; kz: string; en: string }>().notNull(),
+  type: varchar("type").notNull().default("update"), // update, comment, milestone
+  attachments: jsonb("attachments").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Relations  
 export const clientsRelations = relations(clients, ({ many }) => ({
   orders: many(orders),
 }));
 
-export const ordersRelations = relations(orders, ({ one }) => ({
+export const ordersRelations = relations(orders, ({ one, many }) => ({
   client: one(clients, {
     fields: [orders.clientId],
     references: [clients.id],
   }),
-  case: one(cases, {
-    fields: [orders.caseId],
-    references: [cases.id],
+  tasks: many(orderTasks),
+  updates: many(orderUpdates),
+}));
+
+export const orderTasksRelations = relations(orderTasks, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderTasks.orderId],
+    references: [orders.id],
+  }),
+}));
+
+export const orderUpdatesRelations = relations(orderUpdates, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderUpdates.orderId],
+    references: [orders.id],
+  }),
+  admin: one(adminUsers, {
+    fields: [orderUpdates.adminId],
+    references: [adminUsers.id],
   }),
 }));
 
@@ -154,6 +196,8 @@ export const insertContactSchema = createInsertSchema(contacts).omit({ id: true,
 export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true, lastLoginAt: true });
 export const insertClientSchema = createInsertSchema(clients).omit({ id: true, createdAt: true, lastLoginAt: true });
 export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertOrderTaskSchema = createInsertSchema(orderTasks).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
+export const insertOrderUpdateSchema = createInsertSchema(orderUpdates).omit({ id: true, createdAt: true });
 
 // Types
 export type Service = typeof services.$inferSelect;
@@ -179,3 +223,9 @@ export type InsertClient = z.infer<typeof insertClientSchema>;
 
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+
+export type OrderTask = typeof orderTasks.$inferSelect;
+export type InsertOrderTask = z.infer<typeof insertOrderTaskSchema>;
+
+export type OrderUpdate = typeof orderUpdates.$inferSelect;
+export type InsertOrderUpdate = z.infer<typeof insertOrderUpdateSchema>;

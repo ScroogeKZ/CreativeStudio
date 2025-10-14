@@ -9,6 +9,11 @@ import { contentCache, CACHE_KEYS, clearCacheKey } from "./cache";
 import { insertClientSchema, insertOrderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test endpoint
+  app.get("/api/test", (req, res) => {
+    res.json({ message: "API is working!" });
+  });
+
   // Services endpoints
   app.get("/api/services", async (req, res) => {
     try {
@@ -78,6 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       contentCache.set(CACHE_KEYS.ALL_CASES, cases);
       res.json(cases);
     } catch (error) {
+      console.error("GET /api/cases error:", error);
       res.status(500).json({ error: "Failed to fetch cases" });
     }
   });
@@ -690,6 +696,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete order" });
+    }
+  });
+
+  // Order Tasks Management (Admin)
+  app.get("/api/admin/orders/:orderId/tasks", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const tasks = await storage.getTasksByOrderId(req.params.orderId);
+      res.json(tasks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tasks" });
+    }
+  });
+
+  app.post("/api/admin/orders/:orderId/tasks", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { insertOrderTaskSchema } = await import("@shared/schema");
+      const validatedData = insertOrderTaskSchema.parse({
+        ...req.body,
+        orderId: req.params.orderId,
+      });
+      const task = await storage.createTask(validatedData);
+      res.status(201).json(task);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid task data", details: error });
+      }
+      res.status(500).json({ error: "Failed to create task" });
+    }
+  });
+
+  app.patch("/api/admin/tasks/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { insertOrderTaskSchema } = await import("@shared/schema");
+      const validatedData = insertOrderTaskSchema.partial().parse(req.body);
+      const task = await storage.updateTask(req.params.id, validatedData);
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid task data", details: error });
+      }
+      res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.patch("/api/admin/tasks/:id/complete", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const task = await storage.completeTask(req.params.id);
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to complete task" });
+    }
+  });
+
+  app.delete("/api/admin/tasks/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteTask(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete task" });
+    }
+  });
+
+  // Order Updates Management (Admin)
+  app.get("/api/admin/orders/:orderId/updates", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const updates = await storage.getUpdatesByOrderId(req.params.orderId);
+      res.json(updates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch updates" });
+    }
+  });
+
+  app.post("/api/admin/orders/:orderId/updates", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      const { insertOrderUpdateSchema } = await import("@shared/schema");
+      const validatedData = insertOrderUpdateSchema.parse({
+        ...req.body,
+        orderId: req.params.orderId,
+        adminId: req.admin?.id || null,
+      });
+      const update = await storage.createUpdate(validatedData);
+      res.status(201).json(update);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid update data", details: error });
+      }
+      res.status(500).json({ error: "Failed to create update" });
+    }
+  });
+
+  app.delete("/api/admin/updates/:id", authMiddleware, async (req: AuthRequest, res) => {
+    try {
+      await storage.deleteUpdate(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete update" });
+    }
+  });
+
+  // Client endpoints for viewing tasks and updates
+  app.get("/api/client/orders/:orderId/tasks", clientAuthMiddleware, async (req: ClientAuthRequest, res) => {
+    try {
+      if (!req.client) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Verify order belongs to client
+      const order = await storage.getOrderById(req.params.orderId);
+      if (!order || order.clientId !== req.client.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const tasks = await storage.getTasksByOrderId(req.params.orderId);
+      res.json(tasks);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get("/api/client/orders/:orderId/updates", clientAuthMiddleware, async (req: ClientAuthRequest, res) => {
+    try {
+      if (!req.client) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      
+      // Verify order belongs to client
+      const order = await storage.getOrderById(req.params.orderId);
+      if (!order || order.clientId !== req.client.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const updates = await storage.getUpdatesByOrderId(req.params.orderId);
+      res.json(updates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch updates" });
     }
   });
 

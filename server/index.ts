@@ -60,7 +60,14 @@ app.use(express.urlencoded({ extended: false }));
 app.use(requestLogger);
 
 (async () => {
-  const server = await registerRoutes(app);
+  let server;
+  try {
+    server = await registerRoutes(app);
+  } catch (error) {
+    console.error("FATAL: Failed to register routes:", error);
+    logger.error("Failed to register routes", { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined });
+    process.exit(1);
+  }
 
   app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

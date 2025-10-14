@@ -23,6 +23,7 @@ import AdminCases from "@/pages/admin/Cases";
 import AdminPosts from "@/pages/admin/Posts";
 import AdminTestimonials from "@/pages/admin/Testimonials";
 import AdminContacts from "@/pages/admin/Contacts";
+import AdminOrders from "@/pages/admin/Orders";
 import ClientLogin from "@/pages/client/Login";
 import ClientDashboard from "@/pages/client/Dashboard";
 import NotFound from "@/pages/not-found";
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/admin/posts" component={() => <ProtectedRoute><AdminPosts /></ProtectedRoute>} />
       <Route path="/admin/testimonials" component={() => <ProtectedRoute><AdminTestimonials /></ProtectedRoute>} />
       <Route path="/admin/contacts" component={() => <ProtectedRoute><AdminContacts /></ProtectedRoute>} />
+      <Route path="/admin/orders" component={() => <ProtectedRoute><AdminOrders /></ProtectedRoute>} />
       
       <Route path="/client/login" component={ClientLogin} />
       <Route path="/client/dashboard" component={ClientDashboard} />

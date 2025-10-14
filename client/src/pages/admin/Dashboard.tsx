@@ -25,6 +25,7 @@ export function AdminLayout({ children, title = 'Админ-панель' }: Adm
 
   const menuItems = [
     { href: '/admin', label: 'Главная', icon: LayoutDashboard },
+    { href: '/admin/orders', label: 'Заказы', icon: Briefcase },
     { href: '/admin/services', label: 'Услуги', icon: FileText },
     { href: '/admin/cases', label: 'Кейсы', icon: Briefcase },
     { href: '/admin/posts', label: 'Блог', icon: FileText },
