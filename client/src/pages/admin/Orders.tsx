@@ -33,8 +33,19 @@ export default function AdminOrders() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    clientId: '',
+    title: { ru: '', kz: '', en: '' },
+    description: { ru: '', kz: '', en: '' },
+    serviceType: '',
+    status: 'pending',
+    progress: 0,
+    startDate: '',
+    endDate: '',
+  });
   const [taskForm, setTaskForm] = useState({ 
     title: { ru: '', kz: '', en: '' }, 
     description: { ru: '', kz: '', en: '' },
@@ -63,6 +74,29 @@ export default function AdminOrders() {
   const { data: updates } = useQuery<OrderUpdate[]>({
     queryKey: [`/api/admin/orders/${selectedOrder?.id}/updates`],
     enabled: !!selectedOrder,
+  });
+
+  const createOrderMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('/api/admin/orders', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/orders'] });
+      setShowOrderDialog(false);
+      setOrderForm({
+        clientId: '',
+        title: { ru: '', kz: '', en: '' },
+        description: { ru: '', kz: '', en: '' },
+        serviceType: '',
+        status: 'pending',
+        progress: 0,
+        startDate: '',
+        endDate: '',
+      });
+    },
   });
 
   const createTaskMutation = useMutation({
@@ -137,6 +171,15 @@ export default function AdminOrders() {
     createUpdateMutation.mutate(updateForm);
   };
 
+  const handleCreateOrder = () => {
+    const orderData = {
+      ...orderForm,
+      startDate: orderForm.startDate || null,
+      endDate: orderForm.endDate || null,
+    };
+    createOrderMutation.mutate(orderData);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -144,6 +187,107 @@ export default function AdminOrders() {
           <h1 className="text-3xl font-bold" data-testid="text-orders-title">Управление заказами</h1>
           <p className="text-muted-foreground">Отслеживание и управление заказами клиентов</p>
         </div>
+        <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-add-order">
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить заказ
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Новый заказ</DialogTitle>
+              <DialogDescription>Создайте заказ для клиента</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Клиент</label>
+                <Select
+                  value={orderForm.clientId}
+                  onValueChange={(value) => setOrderForm({ ...orderForm, clientId: value })}
+                >
+                  <SelectTrigger data-testid="select-client">
+                    <SelectValue placeholder="Выберите клиента" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients && clients.length > 0 ? (
+                      clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name} {client.company ? `(${client.company})` : ''}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="no-clients" disabled>
+                        Нет доступных клиентов
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <MultilingualInput
+                name="order-title"
+                label="Название проекта"
+                value={orderForm.title}
+                onChange={(value: { ru: string; kz: string; en: string }) => 
+                  setOrderForm({ ...orderForm, title: value })
+                }
+                required
+              />
+
+              <MultilingualInput
+                name="order-description"
+                label="Описание"
+                value={orderForm.description}
+                onChange={(value: { ru: string; kz: string; en: string }) => 
+                  setOrderForm({ ...orderForm, description: value })
+                }
+                type="textarea"
+                required
+              />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Тип услуги</label>
+                <Input
+                  value={orderForm.serviceType}
+                  onChange={(e) => setOrderForm({ ...orderForm, serviceType: e.target.value })}
+                  placeholder="Например: Веб-разработка, Брендинг, SMM..."
+                  data-testid="input-service-type"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Дата начала</label>
+                  <Input
+                    type="date"
+                    value={orderForm.startDate}
+                    onChange={(e) => setOrderForm({ ...orderForm, startDate: e.target.value })}
+                    data-testid="input-start-date"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Дата окончания</label>
+                  <Input
+                    type="date"
+                    value={orderForm.endDate}
+                    onChange={(e) => setOrderForm({ ...orderForm, endDate: e.target.value })}
+                    data-testid="input-end-date"
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleCreateOrder} 
+                disabled={createOrderMutation.isPending || !orderForm.clientId || !orderForm.title.ru}
+                className="w-full"
+                data-testid="button-save-order"
+              >
+                {createOrderMutation.isPending ? 'Создание...' : 'Создать заказ'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {isLoading ? (
