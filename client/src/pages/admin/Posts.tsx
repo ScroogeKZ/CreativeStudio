@@ -3,8 +3,8 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { AdminLayout } from './Dashboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MultilingualInput } from '@/components/admin/MultilingualInput';
 import {
   Dialog,
   DialogContent,
@@ -26,10 +26,33 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { Post, InsertPost } from '@shared/schema';
 
+type PostFormData = {
+  slug: string;
+  title: { ru: string; kz: string; en: string };
+  excerpt: { ru: string; kz: string; en: string };
+  content: { ru: string; kz: string; en: string };
+  coverImage: string;
+  category: string;
+  author: string;
+  published: boolean;
+};
+
+const emptyFormData: PostFormData = {
+  slug: '',
+  title: { ru: '', kz: '', en: '' },
+  excerpt: { ru: '', kz: '', en: '' },
+  content: { ru: '', kz: '', en: '' },
+  coverImage: '',
+  category: '',
+  author: 'CreativeStudio',
+  published: false,
+};
+
 export default function AdminPosts() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [formData, setFormData] = useState<PostFormData>(emptyFormData);
 
   const { data: posts = [], isLoading } = useQuery<Post[]>({
     queryKey: ['/api/admin/posts'],
@@ -42,16 +65,17 @@ export default function AdminPosts() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       setIsCreateOpen(false);
+      setFormData(emptyFormData);
       toast({
         title: 'Успешно',
         description: 'Пост создан',
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         variant: 'destructive',
         title: 'Ошибка',
-        description: 'Не удалось создать пост',
+        description: error?.message || 'Не удалось создать пост',
       });
     },
   });
@@ -63,16 +87,17 @@ export default function AdminPosts() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       setEditingPost(null);
+      setFormData(emptyFormData);
       toast({
         title: 'Успешно',
         description: 'Пост обновлен',
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         variant: 'destructive',
         title: 'Ошибка',
-        description: 'Не удалось обновить пост',
+        description: error?.message || 'Не удалось обновить пост',
       });
     },
   });
@@ -88,35 +113,166 @@ export default function AdminPosts() {
         description: 'Пост удален',
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         variant: 'destructive',
         title: 'Ошибка',
-        description: 'Не удалось удалить пост',
+        description: error?.message || 'Не удалось удалить пост',
       });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
+  const handleSubmit = (e: React.FormEvent, isEdit = false) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data: InsertPost = {
-      title: formData.get('title') as string,
-      slug: formData.get('slug') as string,
-      excerpt: formData.get('excerpt') as string,
-      content: formData.get('content') as string,
-      image: formData.get('image') as string,
-      author: formData.get('author') as string,
-      published: formData.get('published') === 'on',
-      publishedAt: formData.get('published') === 'on' ? new Date() : undefined,
-    };
-
+    
     if (isEdit && editingPost) {
-      updateMutation.mutate({ id: editingPost.id, data });
+      updateMutation.mutate({ id: editingPost.id, data: formData });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(formData);
     }
   };
+
+  const openCreateDialog = () => {
+    setFormData(emptyFormData);
+    setIsCreateOpen(true);
+  };
+
+  const openEditDialog = (post: Post) => {
+    setFormData({
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      content: post.content,
+      coverImage: post.coverImage,
+      category: post.category,
+      author: post.author,
+      published: post.published,
+    });
+    setEditingPost(post);
+  };
+
+  const renderForm = (isEdit = false) => (
+    <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="slug" className="text-sm font-medium">
+            Slug (URL) <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="slug"
+            value={formData.slug}
+            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+            required
+            data-testid="input-slug"
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="category" className="text-sm font-medium">
+            Категория <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="category"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            required
+            data-testid="input-category"
+          />
+        </div>
+      </div>
+
+      <MultilingualInput
+        name="title"
+        label="Заголовок статьи"
+        value={formData.title}
+        onChange={(value) => setFormData({ ...formData, title: value })}
+        type="input"
+        required
+      />
+
+      <div className="space-y-2">
+        <label htmlFor="author" className="text-sm font-medium">
+          Автор <span className="text-destructive">*</span>
+        </label>
+        <Input
+          id="author"
+          value={formData.author}
+          onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+          required
+          data-testid="input-author"
+        />
+      </div>
+
+      <MultilingualInput
+        name="excerpt"
+        label="Краткое описание"
+        value={formData.excerpt}
+        onChange={(value) => setFormData({ ...formData, excerpt: value })}
+        type="textarea"
+        required
+      />
+
+      <MultilingualInput
+        name="content"
+        label="Содержание статьи"
+        value={formData.content}
+        onChange={(value) => setFormData({ ...formData, content: value })}
+        type="textarea"
+        required
+      />
+
+      <div className="space-y-2">
+        <label htmlFor="coverImage" className="text-sm font-medium">
+          URL обложки <span className="text-destructive">*</span>
+        </label>
+        <Input
+          id="coverImage"
+          value={formData.coverImage}
+          onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+          required
+          data-testid="input-coverImage"
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="published"
+          checked={formData.published}
+          onCheckedChange={(checked) => setFormData({ ...formData, published: !!checked })}
+          data-testid="input-published"
+        />
+        <label htmlFor="published" className="text-sm font-medium">
+          Опубликовано
+        </label>
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => {
+            if (isEdit) {
+              setEditingPost(null);
+            } else {
+              setIsCreateOpen(false);
+            }
+            setFormData(emptyFormData);
+          }}
+          data-testid="button-cancel"
+        >
+          Отмена
+        </Button>
+        <Button
+          type="submit"
+          disabled={isEdit ? updateMutation.isPending : createMutation.isPending}
+          data-testid="button-submit"
+        >
+          {isEdit
+            ? (updateMutation.isPending ? 'Обновление...' : 'Обновить')
+            : (createMutation.isPending ? 'Создание...' : 'Создать')}
+        </Button>
+      </div>
+    </form>
+  );
 
   return (
     <AdminLayout title="Управление блогом">
@@ -125,92 +281,19 @@ export default function AdminPosts() {
           <h2 className="text-2xl font-bold">Блог</h2>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button data-testid="button-create-post">
+              <Button onClick={openCreateDialog} data-testid="button-create-post">
                 <Plus className="h-4 w-4 mr-2" />
                 Добавить пост
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Новый пост</DialogTitle>
                 <DialogDescription>
-                  Создайте новую статью для блога
+                  Создайте новую статью для блога на всех языках
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="title" className="text-sm font-medium">
-                      Заголовок
-                    </label>
-                    <Input id="title" name="title" required data-testid="input-title" />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="slug" className="text-sm font-medium">
-                      Slug (URL)
-                    </label>
-                    <Input id="slug" name="slug" required data-testid="input-slug" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="author" className="text-sm font-medium">
-                    Автор
-                  </label>
-                  <Input id="author" name="author" required data-testid="input-author" />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="excerpt" className="text-sm font-medium">
-                    Краткое описание
-                  </label>
-                  <Textarea
-                    id="excerpt"
-                    name="excerpt"
-                    required
-                    rows={3}
-                    data-testid="input-excerpt"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="content" className="text-sm font-medium">
-                    Содержание
-                  </label>
-                  <Textarea
-                    id="content"
-                    name="content"
-                    required
-                    rows={8}
-                    data-testid="input-content"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="image" className="text-sm font-medium">
-                    URL изображения
-                  </label>
-                  <Input id="image" name="image" required data-testid="input-image" />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox id="published" name="published" data-testid="input-published" />
-                  <label
-                    htmlFor="published"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Опубликовать сейчас
-                  </label>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCreateOpen(false)}
-                    data-testid="button-cancel"
-                  >
-                    Отмена
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit">
-                    {createMutation.isPending ? 'Создание...' : 'Создать'}
-                  </Button>
-                </div>
-              </form>
+              {renderForm(false)}
             </DialogContent>
           </Dialog>
         </div>
@@ -224,6 +307,7 @@ export default function AdminPosts() {
                 <TableRow>
                   <TableHead>Заголовок</TableHead>
                   <TableHead>Автор</TableHead>
+                  <TableHead>Категория</TableHead>
                   <TableHead>Статус</TableHead>
                   <TableHead>Дата</TableHead>
                   <TableHead className="text-right">Действия</TableHead>
@@ -232,7 +316,7 @@ export default function AdminPosts() {
               <TableBody>
                 {posts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Нет постов. Создайте первый пост.
                     </TableCell>
                   </TableRow>
@@ -241,8 +325,9 @@ export default function AdminPosts() {
                     <TableRow key={post.id} data-testid={`row-post-${post.id}`}>
                       <TableCell className="font-medium">{post.title.ru}</TableCell>
                       <TableCell>{post.author}</TableCell>
+                      <TableCell>{post.category}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded text-xs ${post.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        <span className={`px-2 py-1 rounded text-xs ${post.published ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'}`}>
                           {post.published ? 'Опубликовано' : 'Черновик'}
                         </span>
                       </TableCell>
@@ -254,7 +339,7 @@ export default function AdminPosts() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setEditingPost(post)}
+                            onClick={() => openEditDialog(post)}
                             data-testid={`button-edit-${post.id}`}
                           >
                             <Pencil className="h-4 w-4" />
@@ -283,119 +368,15 @@ export default function AdminPosts() {
 
         {/* Edit Dialog */}
         {editingPost && (
-          <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <Dialog open={!!editingPost} onOpenChange={() => { setEditingPost(null); setFormData(emptyFormData); }}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Редактировать пост</DialogTitle>
                 <DialogDescription>
                   Обновите информацию о посте
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label htmlFor="edit-title" className="text-sm font-medium">
-                      Заголовок
-                    </label>
-                    <Input
-                      id="edit-title"
-                      name="title"
-                      defaultValue={editingPost.title}
-                      required
-                      data-testid="input-edit-title"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="edit-slug" className="text-sm font-medium">
-                      Slug (URL)
-                    </label>
-                    <Input
-                      id="edit-slug"
-                      name="slug"
-                      defaultValue={editingPost.slug}
-                      required
-                      data-testid="input-edit-slug"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="edit-author" className="text-sm font-medium">
-                    Автор
-                  </label>
-                  <Input
-                    id="edit-author"
-                    name="author"
-                    defaultValue={editingPost.author}
-                    required
-                    data-testid="input-edit-author"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="edit-excerpt" className="text-sm font-medium">
-                    Краткое описание
-                  </label>
-                  <Textarea
-                    id="edit-excerpt"
-                    name="excerpt"
-                    defaultValue={editingPost.excerpt}
-                    required
-                    rows={3}
-                    data-testid="input-edit-excerpt"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="edit-content" className="text-sm font-medium">
-                    Содержание
-                  </label>
-                  <Textarea
-                    id="edit-content"
-                    name="content"
-                    defaultValue={editingPost.content}
-                    required
-                    rows={8}
-                    data-testid="input-edit-content"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="edit-image" className="text-sm font-medium">
-                    URL изображения
-                  </label>
-                  <Input
-                    id="edit-image"
-                    name="image"
-                    defaultValue={editingPost.image}
-                    required
-                    data-testid="input-edit-image"
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="edit-published"
-                    name="published"
-                    defaultChecked={editingPost.published}
-                    data-testid="input-edit-published"
-                  />
-                  <label
-                    htmlFor="edit-published"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Опубликовать
-                  </label>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setEditingPost(null)}
-                    data-testid="button-cancel-edit"
-                  >
-                    Отмена
-                  </Button>
-                  <Button type="submit" disabled={updateMutation.isPending} data-testid="button-submit-edit">
-                    {updateMutation.isPending ? 'Обновление...' : 'Обновить'}
-                  </Button>
-                </div>
-              </form>
+              {renderForm(true)}
             </DialogContent>
           </Dialog>
         )}
