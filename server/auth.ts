@@ -86,18 +86,24 @@ export async function createAdminUser(email: string, password: string, name: str
 }
 
 export async function loginAdmin(email: string, password: string) {
+  logger.info(`Login attempt for email: ${email}`);
+  
   const [user] = await db
     .select()
     .from(adminUsers)
     .where(eq(adminUsers.email, email));
 
   if (!user) {
+    logger.warn(`User not found: ${email}`);
     return null;
   }
 
+  logger.info(`User found, checking password for: ${email}`);
   const isValid = await comparePassword(password, user.passwordHash);
+  logger.info(`Password validation result: ${isValid}`);
   
   if (!isValid) {
+    logger.warn(`Invalid password for user: ${email}`);
     return null;
   }
 
@@ -108,6 +114,8 @@ export async function loginAdmin(email: string, password: string) {
     .where(eq(adminUsers.id, user.id));
 
   const token = generateToken(user.id);
+  
+  logger.info(`Login successful for user: ${email}`);
   
   return {
     token,

@@ -3,7 +3,7 @@ import { adminUsers } from '../shared/schema';
 import { hashPassword } from '../server/auth';
 
 async function createAdmin() {
-  const email = 'admin@creativestudio.com';
+  const email = 'admin@creativestudio.kz';
   const password = 'admin123';
   const name = 'Admin';
 
